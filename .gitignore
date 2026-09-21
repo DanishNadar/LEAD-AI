@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+.env.local
+.env*.local
+!.env.example
+*.tsbuildinfo
+# Local persistent data created by the demo reporting repository.
+.lead-ai/
+
+# Vercel CLI project linkage
+.vercel

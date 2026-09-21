@@ -1,0 +1,4 @@
+# The local JSON reporting store never belongs in a deployment.
+.lead-ai/
+.next/
+node_modules/
