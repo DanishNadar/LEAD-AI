@@ -1,8 +1,10 @@
+import { demoIndividualReports } from "./committee-reports-demo";
 import type { ProgramData } from "./types";
 
 export const demoProgramData: ProgramData = {
   reportingPeriod: "Fall 2026 · Weeks 1–6",
   cohortSize: 38,
+  individualReports: demoIndividualReports,
   lastSyncedAt: "2026-09-09T14:32:00.000Z",
   events: [
     { id: "e-101", title: "Leadership Lab: Influence", date: "2026-09-03", type: "Leadership lab", campusArea: "Academic", expected: 38, rsvps: 36, checkins: 33, feedbackScore: 4.7, owner: "Programs", hasAgenda: true, hasOutcome: true },

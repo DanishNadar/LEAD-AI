@@ -1,3 +1,4 @@
+import { buildWeeklyPulse } from "./weekly-report";
 import type { ProgramData, ProgramReport } from "./types";
 
 const percentage = (numerator: number, denominator: number) =>
@@ -55,6 +56,9 @@ export function buildProgramReport(data: ProgramData): ProgramReport {
       note: "Cohort-level signals only. Individual interpretation requires consent, context, and human review.",
     },
     footprint: { internal: academic + studentLife + career, external: community, campusAreas: new Set(data.events.map((event) => event.campusArea)).size, partnerships: 4 },
-    themes, goals: data.goals, events: data.events, lastSyncedAt: data.lastSyncedAt,
+    themes,
+    // The qualitative read from committee check-ins travels with the quantitative report.
+    weeklyPulse: buildWeeklyPulse(data.individualReports),
+    goals: data.goals, events: data.events, lastSyncedAt: data.lastSyncedAt,
   };
 }

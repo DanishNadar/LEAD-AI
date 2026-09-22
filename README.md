@@ -42,6 +42,12 @@ CampusGroups Data Export API
        └─ normalized reporting tables (local demo store today; approved database in production)
             └─ aggregate metrics + qualitative themes
                  └─ role-restricted dashboard and exported report brief
+
+Weekly Individual Report / Committee Check-In form
+  └─ submission stored verbatim, addressed by report ID
+       └─ semantic read: momentum, blockers + actions, commitments, evidence, themes
+            └─ weekly roll-up: project threads across weeks, follow-through on last week
+                 └─ internal brief (risks, ledger) and showcase brief (achievements, reach)
 ```
 
 The `CampusGroupsExportClient` implements the API’s request → query ID → retrieval → `NextToken` pagination pattern, including the documented `updatedStart`, `updatedEnd`, and maximum page size of 999. It supports the initial reporting resources:
@@ -73,6 +79,53 @@ The route normalizes approved fields and upserts them into the repository; it re
 Open **Data settings** in the dashboard to inspect the local reporting tables, record a touchpoint, run a simulated CampusGroups sync, or reset the sample records. A touchpoint writes an event plus linked RSVP and check-in rows; the dashboard then receives a freshly calculated aggregate report. The simulated sync uses the same event → RSVP → check-in upsert order as the live adapter.
 
 The mutable demo endpoints are intentionally disabled in production unless their matching `LEAD_ALLOW_DEMO_*` flags are set. Replace `src/lib/lead/mock-database.ts` with the institution’s approved database repository before enabling live records, and add authentication/role checks at that boundary.
+
+## Committee check-ins: individual reports and the weekly roll-up
+
+The Weekly Individual Report and Committee Check-In forms ask the same questions with slightly different labels, so both normalize into one submission shape. Each submission is stored **verbatim** and addressed by an ID such as `IR-260921-SN-1` (`IR-<yymmdd of the Monday>-<committee code>-<sequence>`). Reporting weeks snap to their Monday, so submissions made on different days land in the same week, and a scholar who re-files for the same week and committee replaces their earlier report and keeps its ID.
+
+Individual reports are the evidence; the weekly roll-up is only a reading of them. Every aggregate claim carries the report IDs behind it, and the dashboard makes each one clickable back to the submission.
+
+### What is read from the free text
+
+`src/lib/lead/semantics.ts` reads the four free-text answers with an explicit lexicon rather than a black box. It is deterministic and auditable: every derived claim keeps the scholar's own sentence, and every classification records why it was reached. Signals are derived on read, not stored, so improving a lexicon improves past weeks too.
+
+| Signal | What it answers |
+| --- | --- |
+| Momentum | Did this week ship, advance, plan, stall, or stop — and on the strength of which phrase? |
+| Blockers | Which of nine kinds of problem is described, at what severity, **and the move that clears it** |
+| Commitments | Next steps split into separately trackable actions, with any due date and named owner |
+| Evidence | Named artifacts, counts, dates, people credited, links, and attachments |
+| Specificity | 0–100: how concretely the week is evidenced, capped for one-line updates |
+| Themes | Which of eleven programme areas the work concentrated on |
+| Follow-ups | Thin or vague answers worth a question rather than a metric |
+
+Two readings run across reports rather than within one:
+
+- **Project threads** cluster the same piece of work across weeks on word overlap, so wording drift between submissions still threads, and a thread with no completed item for two weeks surfaces on the watchlist.
+- **Follow-through** compares last week's stated next steps against this week's updates. A commitment that reappears in an update was *kept*, one that only reappears in next steps was *restated*, one that appears nowhere was *dropped*. This is what catches a commitment going quietly missing — and it corroborates blockers reported elsewhere, such as an approval another committee said it was waiting on.
+
+Blockers declared in the issues field outrank ones inferred from an update, and an inferred blocker must also carry a problem signal, so "approved two of the three committee budgets" is not read as a funding problem.
+
+### Internal and showcase wording
+
+The weekly report is written for internal use and generates two versions from the same evidence:
+
+- **Internal** names the silent committees, the blockers with their recommended actions, the follow-through ledger, and the follow-up prompts for chairs.
+- **Showcase** keeps the achievements, the verbatim quotes, the themes, and the reach, and carries no blockers and no critical attribution — so the same week can be shown outside the Academy without being rewritten.
+
+### Endpoints
+
+| Route | Purpose |
+| --- | --- |
+| `GET /api/reports/individual?week=&committee=&scholar=&q=` | Retrieval index; `q` searches every answer |
+| `POST /api/reports/individual` | Intake, with the published form's word limits enforced |
+| `GET /api/reports/individual/[id]` | One submission as written, plus its derived signals |
+| `GET /api/reports/weekly` | Week index plus the most recent roll-up |
+| `GET /api/reports/weekly/[week]` | One week's roll-up; any date inside the week resolves |
+| `GET /api/reports/weekly/[week]/brief?audience=internal\|showcase` | Downloadable Markdown brief |
+
+A check-in names the scholar who wrote it, so it sits on the other side of the data boundary from the aggregate program report: locally the demo stays open, but on a deployment retrieval requires an admin session (`src/lib/lead/report-access.ts`). The dashboard's **Weekly digest** and **Committee check-ins** views and the Overview pulse band all respect that gate.
 
 ## Admin access, Gmail OTP, and scheduled syncs
 
@@ -143,6 +196,7 @@ Leadership indicators are cohort-level growth signals, not automated rankings of
 ## Current scope and next decisions
 
 - The UI is functional with labelled seed data, a persistent local reporting store, dynamic touchpoint entry, a visible table workbench, and exportable three-question briefs.
+- Committee check-ins add the qualitative half: individual reports retrievable by ID, a weekly roll-up that reads them, and internal/showcase briefs. The extraction lexicons in `src/lib/lead/semantics.ts` are the part to tune against real submissions — they are deliberately conservative, so a missed blocker is more likely than an invented one.
 - The sync adapter implements CampusGroups’ asynchronous export status and writes normalized, approved fields to the demo repository. It is designed to swap to an approved data store before live rollout.
 - Before live rollout, choose the institutional database, authentication/roles, retention period, access-review process, and the finalized definition of each leadership metric.
 - AILA can later consume de-identified, approved program aggregates through a separate integration boundary; it should not receive raw student records by default.

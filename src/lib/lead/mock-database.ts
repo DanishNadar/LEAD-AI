@@ -5,7 +5,9 @@ import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { demoProgramData } from "@/lib/lead/demo-data";
 import { buildProgramReport } from "@/lib/lead/metrics";
-import type { AdminSyncSettings, DataOverview, EventRecord, ProgramData, ProgramReport, ReportingTableName, TouchpointInput } from "@/lib/lead/types";
+import { committeeCode, scholarKey } from "@/lib/lead/report-intake";
+import { buildWeeklyReport, latestWeekOf, listWeeks, summarize, viewOf } from "@/lib/lead/weekly-report";
+import type { AdminSyncSettings, Committee, DataOverview, EventRecord, IndividualReport, IndividualReportSubmission, IndividualReportSummary, IndividualReportView, ProgramData, ProgramReport, ReportingTableName, TouchpointInput, WeekIndexEntry, WeeklyReport } from "@/lib/lead/types";
 
 type DatabaseEvent = Omit<EventRecord, "rsvps" | "checkins"> & { externalId?: string };
 type DatabaseRsvp = { id: string; eventId: string; status: string; externalId?: string };
@@ -66,6 +68,7 @@ function seedDatabase(): MockDatabase {
     badgeCompletions: demoProgramData.badgeCompletions,
     members: demoProgramData.members,
     goals: demoProgramData.goals,
+    individualReports: demoProgramData.individualReports,
     lastSyncedAt: demoProgramData.lastSyncedAt,
     syncRuns: [{ id: "seed", source: "campusgroups-demo", resource: "initial reporting tables", received: demoProgramData.events.length, completedAt: demoProgramData.lastSyncedAt }],
     adminSyncSettings: defaultAdminSyncSettings,
@@ -78,6 +81,7 @@ function migrateDatabase(database: Partial<MockDatabase>): MockDatabase {
     ...seed,
     ...database,
     version: 1,
+    individualReports: database.individualReports ?? seed.individualReports,
     syncRuns: database.syncRuns ?? seed.syncRuns,
     adminSyncSettings: { ...defaultAdminSyncSettings, ...database.adminSyncSettings },
   };
@@ -97,6 +101,7 @@ function toProgramData(database: MockDatabase): ProgramData {
     badgeCompletions: database.badgeCompletions,
     members: database.members,
     goals: database.goals,
+    individualReports: database.individualReports,
     lastSyncedAt: database.lastSyncedAt,
   };
 }
@@ -156,6 +161,7 @@ function makeOverview(database: MockDatabase): DataOverview {
     { name: "badgeCompletions", label: "badge completions", count: database.badgeCompletions.length, description: "Learning-validation completions." },
     { name: "surveys", label: "survey responses", count: database.surveys.length, description: "De-identified feedback used for themes." },
     { name: "goals", label: "program goals", count: database.goals.length, description: "Program-owned targets and improvement actions." },
+    { name: "individualReports", label: "committee check-ins", count: database.individualReports.length, description: "Individual weekly reports, stored verbatim and retrievable by ID." },
   ];
   const production = process.env.NODE_ENV === "production";
   return {
@@ -323,4 +329,74 @@ export async function runDemoCampusGroupsSync() {
   await ingestCampusGroupsRows("events", [{ id: eventId, name: "Leadership Lab: Collaboration", startDate: "2026-09-10T17:00:00Z", type: { name: "Leadership lab" }, capacity: 36, cohostingGroupNames: "Leadership Academy, Career Services", shortDescription: "Applied collaboration practice", updatedOn: now }]);
   await ingestCampusGroupsRows("rsvp", Array.from({ length: 32 }, (_, index) => ({ id: 70000 + index, eventId, rsvp: "attending", updatedOn: now })));
   return ingestCampusGroupsRows("checkins", Array.from({ length: 29 }, (_, index) => ({ id: 80000 + index, eventId, userId: 50000 + index, action: "checkin", updatedOn: now })));
+}
+
+/* ==========================================================================
+   Committee check-ins: write, retrieve, roll up.
+
+   Individual reports are stored verbatim. The weekly roll-up is always derived
+   on read from the stored submissions, never cached as a separate record, so a
+   report and its evidence can never drift apart.
+   ========================================================================== */
+
+function nextReportId(database: MockDatabase, submission: IndividualReportSubmission) {
+  const prefix = `IR-${submission.weekOf.slice(2).replace(/-/g, "")}-${committeeCode[submission.reportingFor]}`;
+  let sequence = database.individualReports.filter((report) => report.id.startsWith(`${prefix}-`)).length + 1;
+  while (database.individualReports.some((report) => report.id === `${prefix}-${sequence}`)) sequence += 1;
+  return `${prefix}-${sequence}`;
+}
+
+/**
+ * A scholar re-filing for the same week and committee is correcting the record,
+ * not adding a second report, so the submission replaces the earlier one and
+ * keeps its ID. Anything already citing that ID still resolves.
+ */
+export async function createIndividualReport(submission: IndividualReportSubmission) {
+  return mutate((database) => {
+    const key = scholarKey(submission.scholarName);
+    const index = database.individualReports.findIndex((entry) => entry.scholarKey === key && entry.weekOf === submission.weekOf && entry.reportingFor === submission.reportingFor);
+    const record: IndividualReport = { ...submission, scholarKey: key, id: index >= 0 ? database.individualReports[index].id : nextReportId(database, submission), receivedAt: new Date().toISOString() };
+    if (index >= 0) database.individualReports[index] = record;
+    else database.individualReports.push(record);
+    appendSyncRun(database, { source: "manual", resource: "committee check-in", received: 1 });
+    return {
+      report: buildProgramReport(toProgramData(database)),
+      overview: makeOverview(database),
+      individual: viewOf(record),
+      weekly: buildWeeklyReport(record.weekOf, database.individualReports),
+      replaced: index >= 0,
+    };
+  });
+}
+
+export type IndividualReportFilter = { week?: string; committee?: Committee; scholar?: string; query?: string };
+
+export async function listIndividualReports(filter: IndividualReportFilter = {}): Promise<IndividualReportSummary[]> {
+  const database = await readDatabase();
+  const query = filter.query?.trim().toLowerCase();
+  const scholar = filter.scholar ? scholarKey(filter.scholar) : undefined;
+  return database.individualReports
+    .filter((report) => (!filter.week || report.weekOf === filter.week)
+      && (!filter.committee || report.reportingFor === filter.committee)
+      && (!scholar || report.scholarKey.includes(scholar))
+      && (!query || [report.scholarName, report.project, report.updates, report.nextSteps, report.issues, report.id].join(" ").toLowerCase().includes(query)))
+    .sort((a, b) => b.weekOf.localeCompare(a.weekOf) || a.reportingFor.localeCompare(b.reportingFor) || a.scholarName.localeCompare(b.scholarName))
+    .map(summarize);
+}
+
+export async function getIndividualReport(id: string): Promise<IndividualReportView | undefined> {
+  const database = await readDatabase();
+  const report = database.individualReports.find((entry) => entry.id === id);
+  return report ? viewOf(report) : undefined;
+}
+
+export async function getWeekIndex(): Promise<WeekIndexEntry[]> {
+  return listWeeks((await readDatabase()).individualReports);
+}
+
+/** Omit `weekOf` for the most recent week that has submissions. */
+export async function getWeeklyReport(weekOf?: string): Promise<WeeklyReport | null> {
+  const { individualReports } = await readDatabase();
+  const week = weekOf ?? latestWeekOf(individualReports);
+  return week ? buildWeeklyReport(week, individualReports) : null;
 }
