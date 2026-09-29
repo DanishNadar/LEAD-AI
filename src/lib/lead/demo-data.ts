@@ -5,6 +5,7 @@ export const demoProgramData: ProgramData = {
   reportingPeriod: "Fall 2026 · Weeks 1–6",
   cohortSize: 38,
   individualReports: demoIndividualReports,
+  sourcePulls: [],
   lastSyncedAt: "2026-09-29T09:15:00.000Z",
   events: [
     { id: "e-107", title: "Mid-Cycle Initiative Review", date: "2026-09-28", type: "Leadership lab", campusArea: "Academic", expected: 38, rsvps: 34, checkins: 31, feedbackScore: 4.6, owner: "Officer Mentors", hasAgenda: true, hasOutcome: true },

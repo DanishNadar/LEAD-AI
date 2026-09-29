@@ -1,22 +1,12 @@
-/**
- * Server-only CampusGroups Data Export API adapter.
- * The API follows an async pattern: POST a date-bounded request, then GET with
- * queryId until the export is ready; follow NextToken until every page is read.
- */
-export const exportResources = [
-  "events",
-  "rsvp",
-  "checkins",
-  "badge_completions",
-  "survey_submissions",
-  "announcements",
-  "budgets",
-  "academic_experiences",
-  "work_experiences",
-  "members",
-] as const;
+import { type ExportResource } from "./export-resources";
 
-export type ExportResource = (typeof exportResources)[number];
+export { exportResources, type ExportResource } from "./export-resources";
+
+/**
+ * Server-only CampusGroups Data Export API adapter. The API follows an async
+ * pattern: POST a date-bounded request, then GET with queryId until the export
+ * is ready; follow NextToken until every page is read.
+ */
 type ExportWindow = { updatedStart: string; updatedEnd: string };
 type QueryResponse = { queryId?: string; queryID?: string };
 type ExportPage<T> = { Results?: T[]; results?: T[]; NextToken?: string; nextToken?: string };
@@ -60,7 +50,7 @@ export class CampusGroupsExportClient {
       headers: this.headers(),
       cache: "no-store",
     });
-    if (!request.ok) throw new Error(`CampusGroups request failed (${request.status}).`);
+    if (!request.ok) throw new Error(`CampusGroups ${resource} request failed (${request.status}).`);
     const query = (await request.json()) as QueryResponse;
     const queryId = query.queryId ?? query.queryID;
     if (!queryId) throw new Error("CampusGroups did not return a query ID.");
@@ -68,7 +58,10 @@ export class CampusGroupsExportClient {
     const all: T[] = [];
     let token: string | undefined;
     let readinessPolls = 0;
-    for (let page = 0; page < 100; page += 1) {
+    // 999 is the API's maximum page size. The deliberately high cap prevents a
+    // malformed nextToken from looping forever without truncating a legitimate
+    // institution-wide export at 99,900 rows.
+    for (let page = 0; page < 10_000; page += 1) {
       const params: Record<string, string> = { queryId, size: "999" };
       if (token) params.token = token;
       const response = await fetch(this.url(resource, params), { headers: this.headers(), cache: "no-store" });
@@ -79,13 +72,13 @@ export class CampusGroupsExportClient {
         page -= 1;
         continue;
       }
-      if (!response.ok) throw new Error(`CampusGroups retrieval failed (${response.status}).`);
+      if (!response.ok) throw new Error(`CampusGroups ${resource} retrieval failed (${response.status}).`);
       const payload = (await response.json()) as ExportPage<T>;
       readinessPolls = 0;
       all.push(...(payload.Results ?? payload.results ?? []));
       token = payload.NextToken ?? payload.nextToken;
       if (!token) return all;
     }
-    throw new Error("CampusGroups export exceeded the 100-page safety limit.");
+    throw new Error(`CampusGroups ${resource} export exceeded the 10,000-page safety limit.`);
   }
 }

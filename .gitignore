@@ -1,6 +1,7 @@
 node_modules/
 .next/
 out/
+.env
 .env.local
 .env*.local
 !.env.example
@@ -10,3 +11,6 @@ out/
 
 # Vercel CLI project linkage
 .vercel
+
+.vercel
+.env*

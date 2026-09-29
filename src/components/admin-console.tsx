@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { exportResourceLabels } from "@/lib/lead/export-resources";
 import { syncResources, type AdminSyncSettings, type SyncCadence, type SyncResource } from "@/lib/lead/types";
 
-const resourceLabels: Record<SyncResource, string> = { events: "Events", rsvp: "RSVPs", checkins: "Check-ins", members: "Members", badge_completions: "Badge completions" };
+const resourceLabels: Record<SyncResource, string> = exportResourceLabels;
 const cadenceLabels: Record<SyncCadence, string> = { hourly: "Every hour", every_6_hours: "Every 6 hours", daily: "Daily", weekdays: "Weekdays" };
 
 export function AdminConsole({ email, initialSettings }: { email: string; initialSettings: AdminSyncSettings }) {
@@ -28,9 +29,12 @@ export function AdminConsole({ email, initialSettings }: { email: string; initia
     setRunning(true); setMessage(null);
     try {
       const response = await fetch("/api/admin/sync", { method: "POST" });
-      const data = await response.json() as { received?: number; resources?: SyncResource[]; error?: string };
-      if (!response.ok) throw new Error(data.error ?? "Sync could not be started.");
-      setMessage(`Sync completed: ${data.received ?? 0} rows received across ${(data.resources ?? []).join(", ")}.`);
+      const data = await response.json() as { received?: number; resources?: SyncResource[]; pulls?: { resource: SyncResource; status: "completed" | "failed"; error?: string }[]; complete?: boolean; error?: string };
+      if (!response.ok && !data.pulls) throw new Error(data.error ?? "Sync could not be started.");
+      const failures = data.pulls?.filter((pull) => pull.status === "failed") ?? [];
+      setMessage(failures.length
+        ? `Sync received ${data.received ?? 0} rows, but ${failures.length} pull${failures.length === 1 ? "" : "s"} failed: ${failures.map((pull) => pull.resource).join(", ")}.`
+        : `All ${data.pulls?.length ?? data.resources?.length ?? 0} configured pulls completed: ${data.received ?? 0} rows received.`);
     } catch (error) { setMessage(error instanceof Error ? error.message : "Sync could not be started."); } finally { setRunning(false); }
   }
   async function signOut() { await fetch("/api/admin/logout", { method: "POST" }); router.replace("/admin"); router.refresh(); }

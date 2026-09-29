@@ -1,19 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { CampusGroupsExportClient, type ExportResource } from "@/lib/lead/campusgroups";
-import { ingestCampusGroupsRows, runDemoCampusGroupsSync, type CampusGroupsResource } from "@/lib/lead/mock-database";
+import { CampusGroupsExportClient, exportResources, type ExportResource } from "@/lib/lead/campusgroups";
+import { hasDurableStorage, ingestCampusGroupsRows, runDemoCampusGroupsSync } from "@/lib/lead/mock-database";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
-
-const allowedResources: ExportResource[] = [
-  "events", "rsvp", "checkins", "badge_completions", "survey_submissions", "announcements", "budgets", "academic_experiences", "work_experiences", "members",
-];
-
-const normalizableResources = ["events", "rsvp", "checkins", "badge_completions", "members"] as const;
-
-function canNormalize(resource: ExportResource): resource is Exclude<CampusGroupsResource, "survey_submissions"> {
-  return normalizableResources.includes(resource as Exclude<CampusGroupsResource, "survey_submissions">);
-}
 
 function authorized(request: NextRequest) {
   const expected = process.env.INTERNAL_SYNC_TOKEN;
@@ -42,8 +32,14 @@ export async function POST(request: NextRequest) {
         setup: "Add CG_SCHOOL_CODE and CG_API_SECRET to .env.local. Secrets are used server-side only.",
       }, { status: 503 });
     }
+    if (process.env.NODE_ENV === "production" && !hasDurableStorage()) {
+      return NextResponse.json({ error: "Live sync requires DATABASE_URL. Provision Neon in Vercel before running an export." }, { status: 503 });
+    }
+    if (process.env.NODE_ENV === "production" && !process.env.CG_REPORTING_GROUP_IDS) {
+      return NextResponse.json({ error: "Live sync requires CG_REPORTING_GROUP_IDS so the report is scoped to the Leadership Academy." }, { status: 503 });
+    }
     const resource = body.resource ?? "events";
-    if (!allowedResources.includes(resource)) {
+    if (!exportResources.includes(resource)) {
       return NextResponse.json({ error: "Unsupported export resource." }, { status: 400 });
     }
     const updatedStart = body.updatedStart ?? new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString();
@@ -51,12 +47,6 @@ export async function POST(request: NextRequest) {
     const client = CampusGroupsExportClient.fromEnvironment();
     const results = await client.exportAll(resource, { updatedStart, updatedEnd });
 
-    if (!canNormalize(resource)) {
-      return NextResponse.json({
-        resource, window: { updatedStart, updatedEnd }, received: results.length,
-        nextStep: "This source is available from CampusGroups but has no approved reporting mapping yet.",
-      });
-    }
     const data = await ingestCampusGroupsRows(resource, results as Record<string, unknown>[]);
     return NextResponse.json({
       resource, window: { updatedStart, updatedEnd }, received: results.length,

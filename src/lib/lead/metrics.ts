@@ -1,4 +1,5 @@
 import { buildWeeklyPulse } from "./weekly-report";
+import { exportResourceLabels, exportResources } from "./export-resources";
 import type { ProgramData, ProgramReport } from "./types";
 
 const percentage = (numerator: number, denominator: number) =>
@@ -24,6 +25,18 @@ export function buildProgramReport(data: ProgramData): ProgramReport {
     ...data.events.filter((event) => !event.hasOutcome).map((event) => `${event.title}: outcome reflection`),
     ...(eventsWithFeedback < data.events.length ? ["feedback collection"] : []),
   ];
+  const completeTouchpoints = data.events.filter((event) => event.hasAgenda && event.hasOutcome && event.feedbackScore !== undefined).length;
+  const evidenceHygiene = percentage(completeTouchpoints, data.events.length);
+  const sourceStatus = data.sourcePulls.length > 0
+    ? exportResources.map((resource) => ({
+      source: exportResourceLabels[resource],
+      state: data.sourcePulls.some((pull) => pull.resource === resource) ? "connected" as const : "pending" as const,
+    }))
+    : [
+      { source: "Event", state: "connected" as const }, { source: "RSVP", state: "connected" as const }, { source: "Check-in", state: "connected" as const },
+      { source: "Survey", state: "pilot" as const }, { source: "Badge", state: "pilot" as const }, { source: "Announcement", state: "pending" as const },
+      { source: "Budget", state: "pending" as const }, { source: "Academic experience", state: "pending" as const }, { source: "Work experience", state: "pending" as const },
+    ];
 
   const themes = [
     { label: "Application", terms: ["used", "apply", "initiative", "practice"], tone: "positive" as const },
@@ -39,20 +52,26 @@ export function buildProgramReport(data: ProgramData): ProgramReport {
   return {
     period: data.reportingPeriod,
     generatedAt: new Date().toISOString(),
-    sourceStatus: [
-      { source: "Event", state: "connected" }, { source: "RSVP", state: "connected" }, { source: "Check-in", state: "connected" },
-      { source: "Survey", state: "pilot" }, { source: "Badge", state: "pilot" }, { source: "Announcement", state: "pending" },
-      { source: "Budget", state: "pending" }, { source: "Academic experience", state: "pending" }, { source: "Work experience", state: "pending" },
-    ],
+    sourceStatus,
     headline: {
       attendanceRate: percentage(checkins, rsvps),
       surveyCompletion: percentage(data.surveys.length, data.surveyInvitations),
       badgeCompletion: percentage(new Set(data.badgeCompletions.map((badge) => badge.userId)).size, data.cohortSize),
       crossCampusOfficers: officers,
     },
-    ordinance: { complete: data.events.length - ordinanceMissing.length, total: data.events.length, missing: ordinanceMissing },
+    ordinance: { complete: completeTouchpoints, total: data.events.length, missing: ordinanceMissing },
     leadership: {
       engagement: percentage(checkins, eventCapacity), application: percentage(membersWithInitiatives, data.cohortSize), reflection: percentage(reflections, data.cohortSize),
+      indicators: [
+        { id: "engagement", label: "Engagement", detail: "Check-ins against scheduled capacity", value: percentage(checkins, eventCapacity), unit: "%" },
+        { id: "attendance", label: "Attendance", detail: "Check-ins against RSVPs", value: percentage(checkins, rsvps), unit: "%" },
+        { id: "learning-validation", label: "Learning validation", detail: "Cohort members with a completed badge", value: percentage(new Set(data.badgeCompletions.map((badge) => badge.userId)).size, data.cohortSize), unit: "%" },
+        { id: "officer-involvement", label: "Officer involvement", detail: "Verified current officer roles", value: officers, unit: "count" },
+        { id: "application", label: "Application", detail: "Members advancing an initiative", value: percentage(membersWithInitiatives, data.cohortSize), unit: "%" },
+        { id: "reflection", label: "Reflection", detail: "Impact reflections filed", value: percentage(reflections, data.cohortSize), unit: "%" },
+        { id: "evidence-hygiene", label: "Evidence hygiene", detail: "Touchpoints with required evidence", value: evidenceHygiene, unit: "%" },
+        { id: "source-coverage", label: "Source coverage", detail: "CampusGroups resources retrieved", value: data.sourcePulls.length, unit: "sources" },
+      ],
       note: "Cohort-level signals only. Individual interpretation needs consent, context, human review.",
     },
     footprint: { internal: academic + studentLife + career, external: community, campusAreas: new Set(data.events.map((event) => event.campusArea)).size, partnerships: 4 },

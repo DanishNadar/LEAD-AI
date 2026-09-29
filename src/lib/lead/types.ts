@@ -1,13 +1,6 @@
-export type EvidenceSource =
-  | "Event"
-  | "RSVP"
-  | "Check-in"
-  | "Survey"
-  | "Badge"
-  | "Announcement"
-  | "Budget"
-  | "Academic experience"
-  | "Work experience";
+import { exportResources, type ExportResource } from "./export-resources";
+
+export type EvidenceSource = string;
 
 export type EventRecord = {
   id: string;
@@ -36,6 +29,8 @@ export type BadgeCompletion = { userId: string; badge: string; completedAt: stri
 
 export type MemberProfile = {
   id: string;
+  /** CampusGroups user ID, retained only as a server-side join key. */
+  sourceUserId?: string;
   cohort: string;
   isActive: boolean;
   officerRoles: number;
@@ -64,6 +59,15 @@ export type ProgramData = {
   members: MemberProfile[];
   goals: ProgramGoal[];
   individualReports: IndividualReport[];
+  sourcePulls: SourcePull[];
+  lastSyncedAt: string;
+};
+
+/** Metadata only: raw CampusGroups export records are never sent to the browser. */
+export type SourcePull = {
+  resource: ExportResource;
+  received: number;
+  retained: number;
   lastSyncedAt: string;
 };
 
@@ -82,6 +86,13 @@ export type ProgramReport = {
     engagement: number;
     application: number;
     reflection: number;
+    indicators: {
+      id: "engagement" | "attendance" | "learning-validation" | "officer-involvement" | "application" | "reflection" | "evidence-hygiene" | "source-coverage";
+      label: string;
+      detail: string;
+      value: number;
+      unit: "%" | "count" | "sources";
+    }[];
     note: string;
   };
   footprint: { internal: number; external: number; campusAreas: number; partnerships: number };
@@ -93,15 +104,17 @@ export type ProgramReport = {
   lastSyncedAt: string;
 };
 
-export type ReportingTableName = "events" | "rsvps" | "checkins" | "members" | "badgeCompletions" | "surveys" | "goals" | "individualReports";
+export type ReportingTableName = "events" | "rsvps" | "checkins" | "members" | "badgeCompletions" | "surveys" | "sourcePulls" | "goals" | "individualReports";
 
 export type DataOverview = {
-  storage: "local-demo" | "ephemeral-demo";
+  /** Legacy values remain in the contract for old persisted state; new reads never emit them. */
+  storage: "neon-postgres" | "local-development" | "ephemeral-development" | "local-demo" | "ephemeral-demo";
   /** Which demo actions the server will actually accept, so the UI never offers a call that fails closed. */
   demoActions: { sync: boolean; reset: boolean; write: boolean };
   tables: { name: ReportingTableName; label: string; count: number; description: string }[];
   lastSyncedAt: string;
   syncRuns: { id: string; source: "manual" | "campusgroups-demo" | "campusgroups"; resource: string; received: number; completedAt: string }[];
+  pulls: SourcePull[];
 };
 
 export type TouchpointInput = {
@@ -117,8 +130,8 @@ export type TouchpointInput = {
   hasOutcome: boolean;
 };
 
-export const syncResources = ["events", "rsvp", "checkins", "members", "badge_completions"] as const;
-export type SyncResource = (typeof syncResources)[number];
+export const syncResources = exportResources;
+export type SyncResource = ExportResource;
 export type SyncCadence = "hourly" | "every_6_hours" | "daily" | "weekdays";
 
 export type AdminSyncSettings = {
