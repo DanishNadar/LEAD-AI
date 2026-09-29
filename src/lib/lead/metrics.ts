@@ -53,7 +53,7 @@ export function buildProgramReport(data: ProgramData): ProgramReport {
     ordinance: { complete: data.events.length - ordinanceMissing.length, total: data.events.length, missing: ordinanceMissing },
     leadership: {
       engagement: percentage(checkins, eventCapacity), application: percentage(membersWithInitiatives, data.cohortSize), reflection: percentage(reflections, data.cohortSize),
-      note: "Cohort-level signals only. Individual interpretation requires consent, context, and human review.",
+      note: "Cohort-level signals only. Individual interpretation needs consent, context, human review.",
     },
     footprint: { internal: academic + studentLife + career, external: community, campusAreas: new Set(data.events.map((event) => event.campusArea)).size, partnerships: 4 },
     themes,

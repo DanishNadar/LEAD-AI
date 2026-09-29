@@ -93,7 +93,7 @@ export function CheckInLibrary({ canRetrieve, canSubmit, onToast, openId, onOpen
   }, [openId, canRetrieve, open, onOpened]);
 
   if (!canRetrieve) {
-    return <section className="library"><p className="admin-message" role="status">Committee check-ins name individual scholars, so this deployment keeps them behind admin sign-in. Sign in at <a href="/admin">/admin</a> to retrieve them.</p></section>;
+    return <section className="library"><p className="admin-message" role="status">Check-ins name individual scholars. Sign in at <a href="/admin">/admin</a> to retrieve them.</p></section>;
   }
 
   return <section className="library" aria-labelledby="library-title">
@@ -101,7 +101,7 @@ export function CheckInLibrary({ canRetrieve, canSubmit, onToast, openId, onOpen
       <div>
         <p className="overline">INDIVIDUAL REPORT RETRIEVAL</p>
         <h1 id="library-title">Every check-in, kept as written.</h1>
-        <p>Reports are stored verbatim and addressed by ID, so a weekly claim can always be traced to the submission behind it. Search across every answer, or filter to one committee or week.</p>
+        <p>Stored verbatim, addressed by ID. Search every answer, or filter by committee or week.</p>
       </div>
       <div className="settings-actions">
         <button className="button primary" onClick={() => setFormOpen(true)} disabled={!canSubmit} title={canSubmit ? undefined : "Check-in submission is closed on this deployment."}>＋ Record a check-in</button>
@@ -258,7 +258,7 @@ function CheckInForm({ onClose, onSaved }: { onClose: () => void; onSaved: (mess
       });
       const data = await response.json() as { individual?: { id: string }; replaced?: boolean; error?: string };
       if (!response.ok) throw new Error(data.error ?? "The check-in could not be saved.");
-      onSaved(data.replaced ? `Check-in ${data.individual?.id} was updated and the weekly roll-up recalculated.` : `Check-in ${data.individual?.id} was stored and the weekly roll-up recalculated.`);
+      onSaved(data.replaced ? `Check-in ${data.individual?.id} updated, roll-up recalculated.` : `Check-in ${data.individual?.id} stored, roll-up recalculated.`);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "The check-in could not be saved.");
       setSaving(false);
@@ -272,7 +272,7 @@ function CheckInForm({ onClose, onSaved }: { onClose: () => void; onSaved: (mess
       <button className="modal-close" onClick={onClose} aria-label="Close" disabled={saving}>×</button>
       <p className="overline">WEEKLY INDIVIDUAL REPORT</p>
       <h2 id="checkin-title">Record a committee check-in</h2>
-      <p>The same questions as the published form. Word limits match it exactly, and the reporting week snaps to its Monday so submissions made on different days land in the same week.</p>
+      <p>Same questions as the published form. Word limits match, reporting week snaps to Monday.</p>
       <form onSubmit={submit}>
         <label>Your name<input autoFocus value={scholarName} onChange={(event) => setScholarName(event.target.value)} placeholder="e.g., Ava Whitfield" /></label>
 
@@ -287,11 +287,11 @@ function CheckInForm({ onClose, onSaved }: { onClose: () => void; onSaved: (mess
           <label>Today&rsquo;s date<input type="date" value={submittedOn} onChange={(event) => setSubmittedOn(event.target.value)} /></label>
           <label>Last committee meeting<input type="date" value={lastMeetingOn} onChange={(event) => setLastMeetingOn(event.target.value)} /></label>
         </div>
-        {memberships.length > 0 && !memberships.includes(reportingFor) && !memberships.includes("Free Agents") && <p className="form-hint">Reporting for a committee you are not a member of? Tick <strong>Free Agents</strong> as well and name the committee you helped.</p>}
+        {memberships.length > 0 && !memberships.includes(reportingFor) && !memberships.includes("Free Agents") && <p className="form-hint">Not a member? Tick <strong>Free Agents</strong>, then name the committee you helped.</p>}
 
         <label>What project or task are you working on? {counter(project, wordLimits.project)}<textarea rows={3} value={project} onChange={(event) => setProject(event.target.value)} placeholder="Name the deliverable, not the topic." /></label>
-        <label>What new updates do you have? {counter(updates, wordLimits.updates)}<textarea rows={4} value={updates} onChange={(event) => setUpdates(event.target.value)} placeholder="Be specific: what is finished, how many, and when." /></label>
-        <label>What are your next steps as a committee? {counter(nextSteps, wordLimits.nextSteps)}<textarea rows={3} value={nextSteps} onChange={(event) => setNextSteps(event.target.value)} placeholder="One action per step, with a date where you have one." /></label>
+        <label>What new updates do you have? {counter(updates, wordLimits.updates)}<textarea rows={4} value={updates} onChange={(event) => setUpdates(event.target.value)} placeholder="What is finished, how many, when." /></label>
+        <label>What are your next steps as a committee? {counter(nextSteps, wordLimits.nextSteps)}<textarea rows={3} value={nextSteps} onChange={(event) => setNextSteps(event.target.value)} placeholder="One action per step, with a date." /></label>
         <label>Is your committee having any issues with a project? {counter(issues, wordLimits.issues)}<textarea rows={3} value={issues} onChange={(event) => setIssues(event.target.value)} placeholder="Write “none” if there are none." /></label>
 
         <div className="form-grid">

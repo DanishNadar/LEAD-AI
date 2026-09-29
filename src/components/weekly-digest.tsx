@@ -104,18 +104,18 @@ export function WeeklyDigest({ canRetrieve, onToast, onOpenReport }: { canRetrie
       link.download = `lead-ai-${kind}-brief-${weekly.weekOf}.md`;
       link.click();
       URL.revokeObjectURL(url);
-      onToast(kind === "internal" ? "Internal brief downloaded, with risks, follow-through, and report IDs." : "Showcase brief downloaded: achievements and reach, no blockers or critical attribution.");
+      onToast(kind === "internal" ? "Internal brief downloaded: risks, follow-through, report IDs." : "Showcase brief downloaded: achievements, reach. No blockers.");
     } catch (reason) {
       onToast(reason instanceof Error ? reason.message : "The brief could not be generated.");
     }
   }
 
   if (!canRetrieve) {
-    return <section className="digest"><p className="admin-message" role="status">Committee check-ins name individual scholars, so this deployment keeps them behind admin sign-in. Sign in at <a href="/admin">/admin</a> to read the weekly roll-up.</p></section>;
+    return <section className="digest"><p className="admin-message" role="status">Check-ins name individual scholars. Sign in at <a href="/admin">/admin</a> to read the roll-up.</p></section>;
   }
   if (loading && !weekly) return <section className="digest"><p className="empty-note">Loading the weekly roll-up…</p></section>;
   if (error) return <section className="digest"><p className="admin-message" role="alert">{error}</p></section>;
-  if (!weekly) return <section className="digest"><p className="empty-note">No committee check-ins have been submitted yet. Record one from <strong>Committee check-ins</strong> and the roll-up appears here.</p></section>;
+  if (!weekly) return <section className="digest"><p className="empty-note">No check-ins submitted yet. Record one from <strong>Committee check-ins</strong>.</p></section>;
 
   const { participation, momentum, followThrough, evidence } = weekly;
   const narrative = audience === "internal" ? weekly.narrative.internal : weekly.narrative.showcase;
@@ -125,7 +125,7 @@ export function WeeklyDigest({ canRetrieve, onToast, onOpenReport }: { canRetrie
       <div>
         <p className="overline">WEEKLY COMMITTEE REPORT</p>
         <h1 id="digest-title">{weekly.label}</h1>
-        <p>Read from {participation.reports} individual check-in{participation.reports === 1 ? "" : "s"}. Every figure below cites the report IDs behind it, so the roll-up can be checked against what scholars actually wrote.</p>
+        <p>Read from {participation.reports} individual check-in{participation.reports === 1 ? "" : "s"}. Every figure cites the report IDs behind it.</p>
       </div>
       <div className="settings-actions">
         <label className="week-picker"><span>Reporting week</span>
@@ -154,7 +154,7 @@ export function WeeklyDigest({ canRetrieve, onToast, onOpenReport }: { canRetrie
         </div>
       </header>
       {narrative.map((paragraph, index) => <p key={index} className="prose">{paragraph}</p>)}
-      <p className="audience-note">{audience === "internal" ? "◈ Internal wording: names the silent committees, the blockers, and the commitments that went missing." : "◈ Showcase wording: achievements, quotes, and reach only — no blockers and no critical attribution, so it can be shared outside the Academy unchanged."}</p>
+      <p className="audience-note">{audience === "internal" ? "◈ Internal: silent committees, blockers, missing commitments." : "◈ Showcase: achievements, quotes, reach. No blockers, no critical attribution."}</p>
     </section>
 
     <div className="grid">
@@ -176,7 +176,7 @@ export function WeeklyDigest({ canRetrieve, onToast, onOpenReport }: { canRetrie
       <section className="panel">
         <header className="panel-head"><div><p className="overline">RISKS AND THE MOVE THAT CLEARS THEM</p><h2>Practical, not just flagged</h2></div><span className="panel-action">{weekly.risks.length}</span></header>
         {weekly.risks.length === 0
-          ? <p className="empty-note">No committee declared a blocker this week. The follow-up prompts below are the ones worth asking anyway.</p>
+          ? <p className="empty-note">No blocker declared this week. Follow-up prompts below.</p>
           : <div className="risk-list">{weekly.risks.map((risk) => <article key={risk.kind} className="risk">
               <header><Pill tone={SEVERITY_TONE[risk.severity]} glyph={risk.severity === "high" ? "!" : risk.severity === "medium" ? "▲" : "◦"}>{title(risk.severity)}</Pill><h3>{risk.label}</h3><span className="risk-where">{risk.committees.join(", ")}</span></header>
               {risk.quotes.slice(0, 2).map((quote) => <blockquote key={quote.reportId}>“{quote.quote}”<cite><button className="link-inline" onClick={() => onOpenReport(quote.reportId)}>{quote.scholarName} · {quote.reportId}</button></cite></blockquote>)}
@@ -189,7 +189,7 @@ export function WeeklyDigest({ canRetrieve, onToast, onOpenReport }: { canRetrie
       <section className="panel">
         <header className="panel-head"><div><p className="overline">FOLLOW-THROUGH</p><h2>Did last week&rsquo;s next steps happen?</h2></div><span className="panel-action">{followThrough.rate}% acted on</span></header>
         {weekly.carryOver.length === 0
-          ? <p className="empty-note">No commitments were recorded for the prior week, so there is nothing to check yet.</p>
+          ? <p className="empty-note">No commitments recorded for the prior week.</p>
           : <ul className="carry-list">{weekly.carryOver.map((entry, index) => <li key={`${entry.reportId}-${index}`}>
               <Pill tone={STATUS_TONE[entry.status]} glyph={STATUS_GLYPH[entry.status]}>{title(entry.status)}</Pill>
               <div><strong>{entry.commitment}</strong><small>{entry.committee} · {entry.scholarName} · stated {fmtWeekShort(entry.fromWeek)}</small>{entry.evidence && <em>“{entry.evidence}”</em>}</div>

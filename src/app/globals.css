@@ -1136,6 +1136,7 @@ button { cursor: pointer; }
   font-weight: 650;
   letter-spacing: .02em;
   white-space: nowrap;
+  flex: 0 0 auto;
 }
 .pill > i { font-style: normal; font-size: 10px; line-height: 1; }
 .pill.tone-good { border-color: var(--ok-line); background: var(--ok-tint); color: var(--ok); }
@@ -1232,8 +1233,8 @@ button { cursor: pointer; }
 .carry-list .pill,
 .followup-list .pill { margin-top: 1px; }
 .thread-list li > div,
-.theme-list li > span { flex: 1; min-width: 0; }
-.theme-list li > span { display: grid; gap: 2px; }
+.theme-list li > span:not(.pill) { flex: 1; min-width: 0; }
+.theme-list li > span:not(.pill) { display: grid; gap: 2px; }
 .theme-list b { font-size: 12.5px; font-weight: 600; }
 .theme-list small { color: var(--soft); font-size: 11px; }
 .theme-list > li > strong { font-size: 15px; font-variant-numeric: tabular-nums; }

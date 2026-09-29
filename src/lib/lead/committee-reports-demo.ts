@@ -152,4 +152,64 @@ export const demoIndividualReports: IndividualReport[] = [
     issues: "None.",
     documentLinks: ["https://docs.example.edu/d/buddy-tracker"], attachments: [],
   }),
+
+  /* ---------- Week of 2026-09-28: mid-cycle initiative review ----------
+     The improvement action on goal g-2, reported by every committee. Officer
+     mentors are named in the updates, so they surface as credited people, and
+     Tomas Vela's second report shows what mentoring does to a thin one. */
+  report({
+    id: "IR-260928-CC-1", scholarKey: "dana okafor", scholarName: "Dana Okafor", committees: ["Co-chairs"], reportingFor: "Co-chairs",
+    weekOf: "2026-09-28", submittedOn: "2026-09-29", lastMeetingOn: "2026-09-28", receivedAt: "2026-09-29T16:05:00.000Z",
+    project: "Mid-Cycle Initiative Review — a halfway checkpoint on every scholar initiative, run with officer mentors.",
+    updates: "Hosted the Mid-Cycle Initiative Review on September 28 with 31 scholars checked in against 34 RSVPs. Paired every reviewed initiative with an officer mentor: Renee Alvarez took Community and Events, Malik Turner took Scholar News, Grace Kimani took Web and Social Media. Published the review rubric and the mentor pairing sheet the same day.",
+    nextSteps: "Collect each mentor's written feedback by October 6 and publish the second-half initiative plan.",
+    issues: "Four initiatives still have no named mentor. We need more hands for the second half and only one officer volunteered.",
+    documentLinks: ["https://docs.example.edu/d/mid-cycle-rubric", "https://docs.example.edu/d/mentor-pairings"],
+    attachments: [{ name: "Mid-cycle review notes 09-28.pdf", kind: "meeting report" }, { name: "Mentor pairing sheet.xlsx", kind: "deliverable" }],
+  }),
+  report({
+    id: "IR-260928-CM-1", scholarKey: "jordan ellis", scholarName: "Jordan Ellis", committees: ["Community"], reportingFor: "Community",
+    weekOf: "2026-09-28", submittedOn: "2026-09-29", lastMeetingOn: "2026-09-28", receivedAt: "2026-09-29T18:22:00.000Z",
+    project: "Peer check-in buddy system — mid-cycle review of the pairings.",
+    updates: "Took the buddy tracker back from Sam Ortega and collected the first round of pair check-ins: 14 of 18 pairs have met. Reviewed the initiative with Renee Alvarez at the mid-cycle review and cut the scope to monthly check-ins.",
+    nextSteps: "Send a reminder to the four pairs that have not met by October 2 and write the mid-cycle summary for the co-chairs.",
+    issues: "None.",
+    documentLinks: ["https://docs.example.edu/d/buddy-tracker"], attachments: [],
+  }),
+  report({
+    id: "IR-260928-EV-1", scholarKey: "priya raman", scholarName: "Priya Raman", committees: ["Events"], reportingFor: "Events",
+    weekOf: "2026-09-28", submittedOn: "2026-09-29", lastMeetingOn: "2026-09-28", receivedAt: "2026-09-29T17:40:00.000Z",
+    project: "Mid-Cycle Initiative Review logistics, and the November panel.",
+    updates: "Ran the room and the check-in desk for the Mid-Cycle Initiative Review and recorded 31 check-ins. Sent the Collaboration Lab feedback summary to the co-chairs on September 29.",
+    nextSteps: "Confirm the November panel venue by October 10 and book the speaker.",
+    issues: "The November panel date clashes with the Scholar News publishing week and we are not on the same page about which comes first.",
+    documentLinks: [], attachments: [{ name: "Mid-cycle check-in sheet.csv", kind: "deliverable" }],
+  }),
+  report({
+    id: "IR-260928-SN-1", scholarKey: "ava whitfield", scholarName: "Ava Whitfield", committees: ["Scholar News"], reportingFor: "Scholar News",
+    weekOf: "2026-09-28", submittedOn: "2026-09-29", lastMeetingOn: "2026-09-28", receivedAt: "2026-09-29T19:11:00.000Z",
+    project: "Fall Scholar Spotlight open rates, and the alumni interview series.",
+    updates: "Collected the newsletter open-rate numbers: 214 sent, 138 opened, a 64% open rate. Outlined the alumni interview series with Malik Turner at the mid-cycle review and confirmed three alumni for October.",
+    nextSteps: "Draft the first alumni interview by October 8 and send the open-rate summary to the co-chairs.",
+    issues: "None.",
+    documentLinks: ["https://docs.example.edu/d/spotlight-open-rates"], attachments: [{ name: "Scholar News meeting notes 09-28.pdf", kind: "meeting report" }],
+  }),
+  report({
+    id: "IR-260928-SN-2", scholarKey: "tomas vela", scholarName: "Tomas Vela", committees: ["Scholar News"], reportingFor: "Scholar News",
+    weekOf: "2026-09-28", submittedOn: "2026-09-29", lastMeetingOn: "2026-09-28", receivedAt: "2026-09-29T20:03:00.000Z",
+    project: "Alumni interview series — outreach to graduates from the last five cohorts.",
+    updates: "Malik Turner walked me through the review rubric and I rewrote my plan. Contacted 9 alumni and 4 agreed to an interview. Drafted the question set and shared it with Ava Whitfield.",
+    nextSteps: "Schedule the first two interviews by October 7 and send the question set to the co-chairs.",
+    issues: "None.",
+    documentLinks: ["https://docs.example.edu/d/alumni-question-set"], attachments: [],
+  }),
+  report({
+    id: "IR-260928-WS-1", scholarKey: "marcus lee", scholarName: "Marcus Lee", committees: ["Web and Social Media"], reportingFor: "Web and Social Media",
+    weekOf: "2026-09-28", submittedOn: "2026-09-29", lastMeetingOn: "2026-09-28", receivedAt: "2026-09-29T21:17:00.000Z",
+    project: "Instagram content calendar handover, and the Academy website events page.",
+    updates: "Editing access to the website was granted on Monday and the events page is up to date. Posted the October event promotion and a recap reel from the Mid-Cycle Initiative Review; reach was 1680 accounts. Handed the content calendar over to Grace Kimani.",
+    nextSteps: "Train Grace Kimani on the posting workflow by October 5.",
+    issues: "None.",
+    documentLinks: ["https://docs.example.edu/d/content-calendar"], attachments: [{ name: "October reach export.csv", kind: "deliverable" }],
+  }),
 ];

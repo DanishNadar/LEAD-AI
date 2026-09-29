@@ -30,15 +30,15 @@ type BlockerRule = { kind: BlockerKind; label: string; cues: string[]; base: Blo
  * no next move is only a complaint with a category attached.
  */
 const BLOCKER_RULES: BlockerRule[] = [
-  { kind: "waiting-on-others", label: "Waiting on a reply", base: "high", action: "Name the person accountable, set a reply-by date, and escalate to co-chairs if it passes.", cues: ["waiting on", "waiting for", "waiting to hear", "no response", "have not heard", "has not responded", "no reply", "still waiting", "pending approval", "need approval", "needs approval", "unanswered"] },
-  { kind: "editing-access", label: "Editing access missing", base: "medium", action: "Name who owns the permission, grant editing access on the linked document or page, and record that owner in the evidence ledger.", cues: ["need access", "no access", "cannot edit", "view only", "view-only", "not shared", "permission", "permissions", "locked", "request access", "requesting access", "editing access", "access to the", "cannot access", "read only", "read-only", "password"] },
-  { kind: "capacity", label: "Capacity and workload", base: "high", action: "Re-scope the week to one deliverable, or assign a Free Agent to the committee.", cues: ["short-handed", "shorthanded", "only one person", "no one", "nobody", "too much", "overwhelmed", "spread thin", "not enough people", "need volunteers", "need help", "need more hands", "understaffed", "midterms", "exams", "finals", "workload", "bandwidth", "everyone is busy", "burnt out", "burned out", "stretched"] },
-  { kind: "attendance", label: "Attendance and turnout", base: "high", action: "Attach the next session to an existing high-attendance touchpoint and send a 24-hour reminder.", cues: ["low turnout", "low attendance", "few people came", "no one came", "nobody came", "no-show", "no shows", "did not show", "empty room", "poor attendance", "only a few", "attendance was low", "cancelled due to", "canceled due to", "drop off", "drop-off"] },
-  { kind: "direction", label: "Direction and scope unclear", base: "medium", action: "Get one written decision from the co-chairs before the next meeting and log it as the source of truth.", cues: ["unclear", "not sure", "unsure", "do not know", "confused", "confusing", "need direction", "no guidelines", "no guidance", "vague", "conflicting", "mixed messages", "who owns", "not defined", "up in the air", "waiting on a decision", "no clear"] },
-  { kind: "timeline", label: "Timeline at risk", base: "high", action: "Re-baseline the date publicly and cut scope to the one item that must ship.", cues: ["behind schedule", "behind on", "delayed", "running out of time", "not going to make", "missed the deadline", "past due", "rushed", "short notice", "tight timeline", "no time", "ran out of time", "pushed the date", "slipped"] },
-  { kind: "funding", label: "Funding and supplies", base: "medium", action: "File the spend request with a budget line and an amount before the next cycle closes.", cues: ["budget", "funding", "funds", "no money", "costs too much", "expensive", "reimbursement", "supplies", "materials", "printing", "catering", "sponsor"] },
-  { kind: "tooling", label: "Tool or platform problem", base: "medium", action: "Log the defect with a screenshot and an owner, and verify a fix before the next publish.", cues: ["broken", "bug", "error", "not working", "does not work", "glitch", "crashed", "cannot log in", "login", "formatting issue", "will not upload", "template broke"] },
-  { kind: "coordination", label: "Coordination gap", base: "medium", action: "Put one owner on each deliverable and move the dates onto the shared Academy calendar.", cues: ["double booked", "double-booked", "scheduling conflict", "overlap", "overlapping", "miscommunication", "did not know", "last minute", "two different", "duplicate", "crossed wires", "not on the same page", "was not told", "left out of"] },
+  { kind: "waiting-on-others", label: "Waiting on a reply", base: "high", action: "Name the owner, set a reply-by date, escalate to co-chairs if it passes.", cues: ["waiting on", "waiting for", "waiting to hear", "no response", "have not heard", "has not responded", "no reply", "still waiting", "pending approval", "need approval", "needs approval", "unanswered"] },
+  { kind: "editing-access", label: "Editing access missing", base: "medium", action: "Name the permission owner, grant editing access, log the owner.", cues: ["need access", "no access", "cannot edit", "view only", "view-only", "not shared", "permission", "permissions", "locked", "request access", "requesting access", "editing access", "access to the", "cannot access", "read only", "read-only", "password"] },
+  { kind: "capacity", label: "Capacity and workload", base: "high", action: "Cut the week to one deliverable, or assign a Free Agent.", cues: ["short-handed", "shorthanded", "only one person", "no one", "nobody", "too much", "overwhelmed", "spread thin", "not enough people", "need volunteers", "need help", "need more hands", "understaffed", "midterms", "exams", "finals", "workload", "bandwidth", "everyone is busy", "burnt out", "burned out", "stretched"] },
+  { kind: "attendance", label: "Attendance and turnout", base: "high", action: "Attach to a high-attendance touchpoint, send a 24-hour reminder.", cues: ["low turnout", "low attendance", "few people came", "no one came", "nobody came", "no-show", "no shows", "did not show", "empty room", "poor attendance", "only a few", "attendance was low", "cancelled due to", "canceled due to", "drop off", "drop-off"] },
+  { kind: "direction", label: "Direction and scope unclear", base: "medium", action: "Get one written decision from co-chairs, log it as the source of truth.", cues: ["unclear", "not sure", "unsure", "do not know", "confused", "confusing", "need direction", "no guidelines", "no guidance", "vague", "conflicting", "mixed messages", "who owns", "not defined", "up in the air", "waiting on a decision", "no clear"] },
+  { kind: "timeline", label: "Timeline at risk", base: "high", action: "Re-baseline the date, cut scope to the must-ship item.", cues: ["behind schedule", "behind on", "delayed", "running out of time", "not going to make", "missed the deadline", "past due", "rushed", "short notice", "tight timeline", "no time", "ran out of time", "pushed the date", "slipped"] },
+  { kind: "funding", label: "Funding and supplies", base: "medium", action: "File the spend request with a budget line and amount, before the cycle closes.", cues: ["budget", "funding", "funds", "no money", "costs too much", "expensive", "reimbursement", "supplies", "materials", "printing", "catering", "sponsor"] },
+  { kind: "tooling", label: "Tool or platform problem", base: "medium", action: "Log the defect with a screenshot and owner, verify the fix before publishing.", cues: ["broken", "bug", "error", "not working", "does not work", "glitch", "crashed", "cannot log in", "login", "formatting issue", "will not upload", "template broke"] },
+  { kind: "coordination", label: "Coordination gap", base: "medium", action: "One owner per deliverable, dates on the shared calendar.", cues: ["double booked", "double-booked", "scheduling conflict", "overlap", "overlapping", "miscommunication", "did not know", "last minute", "two different", "duplicate", "crossed wires", "not on the same page", "was not told", "left out of"] },
 ];
 
 /**
@@ -188,7 +188,7 @@ function personNames(text: string) {
   const candidate = "([A-Z][a-z]{2,}(?:\\s+[A-Z][a-z]{2,})?)";
   const patterns = [
     new RegExp(`\\b(?:with|from|to|and|alongside|thanks to|credit to|handed to|met)\\s+${candidate}\\b`, "g"),
-    new RegExp(`\\b${candidate}\\s+(?:will|is|has|said|helped|agreed|volunteered|joined|offered|took|sent|wrote|led|owns)\\b`, "g"),
+    new RegExp(`\\b${candidate}\\s+(?:will|is|has|said|helped|agreed|volunteered|joined|offered|took|sent|wrote|led|owns|walked|mentored|coached|advised|reviewed|paired|showed|met|ran|hosted)\\b`, "g"),
     /@([a-z][\w.-]{2,30})/gi,
   ];
   for (const pattern of patterns) {
@@ -283,7 +283,7 @@ function splitClauses(sentence: string, actionCues: string[]) {
 
 function findCommitments(nextSteps: string): Commitment[] {
   if (isBlankAnswer(nextSteps)) return [];
-  const actionCues = [...DELIVERED_CUES, ...ADVANCING_CUES, ...PLANNING_CUES, "finish", "send", "post", "publish", "create", "write", "meet", "reach out", "confirm", "book", "collect", "review", "share", "set up", "follow up", "launch", "prepare", "assign", "recruit", "schedule", "update", "build", "design", "host", "run", "finalize", "draft", "hand", "approve", "complete", "deliver", "distribute", "record", "upload", "submit", "circulate", "compile", "outline", "edit", "revise", "organize", "identify", "onboard", "train", "order", "print", "invite", "email", "contact", "gather", "track", "measure", "summarize", "present"];
+  const actionCues = [...DELIVERED_CUES, ...ADVANCING_CUES, ...PLANNING_CUES, "finish", "send", "post", "publish", "create", "write", "meet", "reach out", "confirm", "book", "collect", "review", "share", "set up", "follow up", "launch", "prepare", "assign", "recruit", "schedule", "update", "build", "design", "host", "run", "finalize", "draft", "hand", "approve", "complete", "deliver", "distribute", "record", "upload", "submit", "circulate", "compile", "outline", "edit", "revise", "organize", "identify", "onboard", "train", "order", "print", "invite", "email", "contact", "gather", "track", "measure", "summarize", "present", "scout", "find", "secure", "arrange", "coordinate", "pitch", "survey", "audit", "check", "verify", "train", "nominate", "select", "choose", "decide", "vote", "pilot", "refresh", "archive"];
   return toSentences(nextSteps)
     .flatMap((sentence) => splitClauses(sentence, actionCues))
     .map((sentence) => {
@@ -315,16 +315,16 @@ function resolveMomentum(updates: string, blockers: Blocker[], delivered: string
   const advancing = matchedCues(lower, ADVANCING_CUES);
   const planning = matchedCues(lower, PLANNING_CUES);
   const high = blockers.filter((blocker) => blocker.severity === "high");
-  if (high.length > 0 && delivered.length === 0) return { momentum: "blocked", reason: `A high-severity blocker (${high[0].label.toLowerCase()}) with no delivered work this week.` };
-  if (isBlankAnswer(updates)) return { momentum: "stalled", reason: "No update was written for the week." };
-  if (stalled.length > 0 && delivered.length === 0) return { momentum: "stalled", reason: `The update says "${stalled[0]}".` };
+  if (high.length > 0 && delivered.length === 0) return { momentum: "blocked", reason: `High-severity blocker (${high[0].label.toLowerCase()}), no delivered work.` };
+  if (isBlankAnswer(updates)) return { momentum: "stalled", reason: "No update written." };
+  if (stalled.length > 0 && delivered.length === 0) return { momentum: "stalled", reason: `Update says "${stalled[0]}".` };
   if (delivered.length > 0) return { momentum: "shipped", reason: `${delivered.length} completed item${delivered.length === 1 ? "" : "s"} named in the update.` };
   // "Working on it" is a claim of activity with nothing attached to it; do not read it as progress.
   const vague = matchedCues(lower, VAGUE_CUES);
-  if (vague.length > 0 && wordCount(updates) < 30) return { momentum: "planning", reason: `The update claims activity without naming an output ("${vague[0]}").` };
+  if (vague.length > 0 && wordCount(updates) < 30) return { momentum: "planning", reason: `Activity claimed, no output named ("${vague[0]}").` };
   if (advancing.length > 0) return { momentum: "advancing", reason: `Work in flight: "${advancing[0]}".` };
-  if (planning.length > 0) return { momentum: "planning", reason: `The update describes intent rather than output: "${planning[0]}".` };
-  return { momentum: "advancing", reason: "The update describes activity with no completion or stall signal." };
+  if (planning.length > 0) return { momentum: "planning", reason: `Intent, not output: "${planning[0]}".` };
+  return { momentum: "advancing", reason: "Activity described, no completion or stall signal." };
 }
 
 function findThemes(text: string, blockers: Blocker[]) {
@@ -384,12 +384,12 @@ export function deriveSignals(report: IndividualReport): ReportSignals {
   const specificity = wordCount(report.updates) < 12 ? Math.min(score, 35) : score;
 
   const followUps: string[] = [];
-  if (wordCount(report.updates) < 15) followUps.push("The update is a single line — ask for the artifact, the count, or the date behind it.");
-  if (numbers.length === 0 && named.length === 0) followUps.push("No named deliverable or count appears in the update, so the week cannot be evidenced.");
-  if (commitments.length === 0) followUps.push("Next steps are not written as actions, so nothing can be checked next week.");
-  if (report.documentLinks.length === 0 && /\b(?:doc|document|sheet|spreadsheet|draft|deck|slides|link)\b/i.test(report.updates)) followUps.push("A document is mentioned but no link with editing access was shared.");
-  if (isBlankAnswer(report.issues) && blockers.length > 0) followUps.push(`The issues field reports none, but the update describes one: "${blockers[0].quote.slice(0, 110)}"`);
-  if (vagueHits >= 2) followUps.push("The narrative leans on general phrasing; ask which specific piece moved.");
+  if (wordCount(report.updates) < 15) followUps.push("One-line update. Ask for the artifact, count, or date.");
+  if (numbers.length === 0 && named.length === 0) followUps.push("No named deliverable or count. Week cannot be evidenced.");
+  if (commitments.length === 0) followUps.push("Next steps are not actions. Nothing to check next week.");
+  if (report.documentLinks.length === 0 && /\b(?:doc|document|sheet|spreadsheet|draft|deck|slides|link)\b/i.test(report.updates)) followUps.push("Document mentioned, no editing link shared.");
+  if (isBlankAnswer(report.issues) && blockers.length > 0) followUps.push(`Issues says none, update describes one: "${blockers[0].quote.slice(0, 110)}"`);
+  if (vagueHits >= 2) followUps.push("General phrasing. Ask which specific piece moved.");
 
   return {
     words: wordCount(narrative),

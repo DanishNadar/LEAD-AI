@@ -52,20 +52,13 @@ export function summarize(report: IndividualReport): IndividualReportSummary {
   };
 }
 
+/** Plain comma list. Reports read as scannable fields, not as prose. */
 function listSentence(values: string[]) {
-  if (values.length === 0) return "";
-  if (values.length === 1) return values[0];
-  if (values.length === 2) return `${values[0]} and ${values[1]}`;
-  return `${values.slice(0, -1).join(", ")}, and ${values[values.length - 1]}`;
+  return values.join(", ");
 }
 
 function plural(count: number, singular: string, pluralForm = `${singular}s`) {
   return `${count} ${count === 1 ? singular : pluralForm}`;
-}
-
-/** "Week of Sep 21, 2026" reads badly lower-cased whole; only the first word changes. */
-function weekPhrase(label: string) {
-  return label.replace(/^Week/, "week");
 }
 
 /** Shorten on a word boundary, so a quoted commitment never breaks mid-word. */
@@ -83,15 +76,20 @@ function clip(text: string, max: number) {
  */
 export function buildProjectThreads(reports: IndividualReport[], throughWeek: string): ProjectThread[] {
   const ordered = [...reports].filter((report) => report.weekOf <= throughWeek).sort((a, b) => a.weekOf.localeCompare(b.weekOf));
-  const threads: (ProjectThread & { texts: string[]; deliveredWeeks: string[] })[] = [];
+  const threads: (ProjectThread & { texts: string[]; projects: string[]; deliveredWeeks: string[] })[] = [];
 
   for (const report of ordered) {
     const signals = signalsFor(report);
     const text = `${report.project} ${report.updates}`;
-    const match = threads.find((thread) => thread.committees.includes(report.reportingFor) && thread.texts.some((existing) => similarity(existing, text) >= 0.42));
+    // The project line is the stable identifier; updates change every week and
+    // dilute the comparison, which used to split one project into three threads.
+    const match = threads.find((thread) => thread.committees.includes(report.reportingFor)
+      && (thread.projects.some((existing) => similarity(existing, report.project) >= 0.45)
+        || thread.texts.some((existing) => similarity(existing, text) >= 0.42)));
     const title = toSentences(report.project)[0]?.slice(0, 110) ?? report.project.slice(0, 110);
     if (match) {
       match.texts.push(text);
+      match.projects.push(report.project);
       match.title = title;
       match.weeks = [...new Set([...match.weeks, report.weekOf])];
       match.contributors = [...new Set([...match.contributors, report.scholarName])];
@@ -114,6 +112,7 @@ export function buildProjectThreads(reports: IndividualReport[], throughWeek: st
       reportIds: [report.id],
       weeksSinceDelivery: 0,
       texts: [text],
+      projects: [report.project],
       deliveredWeeks: signals.delivered.length > 0 ? [report.weekOf] : [],
     });
   }
@@ -223,7 +222,7 @@ function buildCollaboration(reports: IndividualReport[]) {
       const namesEachOther = left.updates.toLowerCase().includes(right.reportingFor.toLowerCase()) || right.updates.toLowerCase().includes(left.reportingFor.toLowerCase());
       if (overlap < 0.28 && !namesEachOther) continue;
       seen.add(key);
-      edges.push({ committees: pair as Committee[], basis: namesEachOther ? "Each committee's update names the other" : `Shared subject matter across both updates (${Math.round(overlap * 100)}% word overlap)` });
+      edges.push({ committees: pair as Committee[], basis: namesEachOther ? "Named in each other's updates" : `Shared subject matter, ${Math.round(overlap * 100)}% word overlap` });
     }
   }
   return edges.slice(0, 4);
@@ -250,63 +249,54 @@ function buildHighlights(reports: IndividualReport[]) {
     .map((entry) => ({ scholarName: entry.scholarName, committee: entry.committee, quote: entry.quote, reportId: entry.reportId, reason: entry.reason }));
 }
 
-function buildNarrative(weekly: Omit<WeeklyReport, "narrative">): WeeklyReport["narrative"] {
+function buildNarrative(weekly: Omit<WeeklyReport, "narrative">, activeThisWeek: number): WeeklyReport["narrative"] {
   const { participation, momentum, delivered, risks, themes, carryOver, followThrough, projects, collaboration, evidence, highlights } = weekly;
   const internal: string[] = [];
   const showcase: string[] = [];
 
+  const committeesTotal = participation.committeesReporting.length + participation.committeesSilent.length;
   internal.push(
-    `${plural(participation.reports, "check-in")} arrived from ${plural(participation.scholars, "scholar")} across ${plural(participation.committeesReporting.length, "committee")} for the ${weekPhrase(weekly.label)}. ` +
+    `Participation: ${participation.reports} check-ins, ${participation.scholars} scholars, ${participation.committeesReporting.length} of ${committeesTotal} committees, ${participation.meetingsHeld} meetings evidenced, average specificity ${evidence.averageSpecificity}/100. ` +
     (participation.committeesSilent.length > 0
-      ? `${listSentence(participation.committeesSilent.map((entry) => `${entry.committee} (${entry.lastReportedWeek ? `last reported in the ${weekPhrase(weekLabel(entry.lastReportedWeek))}` : "has never reported"})`))} did not report.`
-      : "Every standing committee reported.") +
-    ` Average specificity across submissions was ${evidence.averageSpecificity}/100.`,
+      ? `Silent: ${participation.committeesSilent.map((entry) => `${entry.committee} (${entry.lastReportedWeek ? `last ${weekLabel(entry.lastReportedWeek).replace("Week of ", "")}` : "never"})`).join(", ")}.`
+      : "Silent: none."),
   );
 
-  if (delivered.length > 0) {
-    internal.push(
-      `Completed this week: ${listSentence(delivered.slice(0, 5).map((item) => `${item.committee} — ${item.text.replace(/\s+$/, "").replace(/\.$/, "")}`))}. ` +
-      `${momentum.shipped} of ${participation.reports} reports named finished work, ${momentum.advancing} described work in flight, and ${momentum.planning} described intent without output.`,
-    );
-  } else {
-    internal.push(`No report named a completed deliverable this week. ${momentum.advancing} described work in flight and ${momentum.planning} described intent without output, which is the signal to ask each committee for one shippable item next week.`);
-  }
+  internal.push(
+    `Momentum: ${momentum.shipped} shipped, ${momentum.advancing} advancing, ${momentum.planning} planning, ${momentum.stalled} stalled, ${momentum.blocked} blocked. ` +
+    (delivered.length > 0
+      ? `Completed: ${delivered.slice(0, 5).map((item) => `${item.committee} — ${clip(item.text.replace(/\.$/, ""), 90)}`).join("; ")}.`
+      : "Completed: nothing named. Ask each committee for one shippable item next week."),
+  );
 
-  if (risks.length > 0) {
-    internal.push(
-      `${plural(risks.length, "risk")} surfaced. ` +
-      risks.slice(0, 3).map((risk) => `${risk.label} (${risk.severity}, ${listSentence(risk.committees)}): ${risk.recommendedAction}`).join(" ") +
-      (momentum.blocked > 0 ? ` ${plural(momentum.blocked, "report")} is blocked outright rather than slowed.` : ""),
-    );
-  } else {
-    internal.push(`No committee reported a blocker this week. That is worth verifying rather than celebrating${weekly.followUps.length > 0 ? `: ${plural(weekly.followUps.length, "follow-up prompt")} below ask for the evidence behind the thinner updates` : ", and every submission this week carried a named deliverable"}.`);
-  }
+  internal.push(
+    risks.length > 0
+      ? `Risks: ${risks.length}. ${risks.slice(0, 3).map((risk) => `${risk.label} — ${risk.severity}, ${risk.committees.join(", ")}. Action: ${risk.recommendedAction}`).join(" ")}`
+      : `Risks: none declared${weekly.followUps.length > 0 ? `, ${plural(weekly.followUps.length, "follow-up prompt")} below` : ", every submission named a deliverable"}.`,
+  );
 
   if (carryOver.length > 0) {
     internal.push(
-      `Follow-through on last week's stated next steps: ${followThrough.kept} kept, ${followThrough.restated} restated, ${followThrough.dropped} dropped (${followThrough.rate}% acted on). ` +
+      `Follow-through: ${followThrough.kept} kept, ${followThrough.restated} restated, ${followThrough.dropped} dropped, ${followThrough.rate}% acted on. ` +
       (followThrough.dropped > 0
-        ? `Dropped without mention: ${listSentence(carryOver.filter((entry) => entry.status === "dropped").slice(0, 3).map((entry) => `"${clip(entry.commitment, 70)}" (${entry.committee})`))}.`
-        : "Nothing stated last week went unmentioned."),
+        ? `Dropped: ${carryOver.filter((entry) => entry.status === "dropped").slice(0, 3).map((entry) => `"${clip(entry.commitment, 60)}" (${entry.committee})`).join(", ")}.`
+        : "Dropped: none."),
     );
   }
 
   const stalled = projects.filter((project) => project.weeksSinceDelivery >= 2);
   if (stalled.length > 0) {
-    internal.push(`Watchlist: ${listSentence(stalled.slice(0, 3).map((project) => `"${project.title}" (${listSentence(project.committees)}, ${plural(project.weeksSinceDelivery, "week")} without a completed item)`))}. These are the threads to put a date on before they lose their audience.`);
+    internal.push(`Watchlist: ${stalled.slice(0, 3).map((project) => `"${clip(project.title, 60)}" — ${project.committees.join(", ")}, ${plural(project.weeksSinceDelivery, "week")} without a completed item`).join("; ")}. Put a date on ${stalled.length === 1 ? "it" : "each"}.`);
   }
 
   // The showcase version keeps the achievements and the reach, and names no one critically.
-  const activeThisWeek = projects.filter((project) => project.latestWeek === weekly.weekOf).length;
-  showcase.push(
-    `In the ${weekPhrase(weekly.label)}, ${plural(participation.scholars, "Leadership Academy scholar")} filed committee reports covering ${plural(activeThisWeek, "active project")} across ${plural(participation.committeesReporting.length, "committee")}: ${listSentence(participation.committeesReporting)}.`,
-  );
+  showcase.push(`${weekly.label}: ${participation.scholars} scholars, ${participation.committeesReporting.length} committees, ${plural(activeThisWeek, "active project")} — ${participation.committeesReporting.join(", ")}.`);
   // Quoted verbatim rather than folded into a sentence, so proper nouns survive.
-  if (delivered.length > 0) showcase.push(`Work completed this week: ${delivered.slice(0, 4).map((item) => clip(item.text.replace(/\.$/, ""), 150)).join("; ")}.`);
+  if (delivered.length > 0) showcase.push(`Completed: ${delivered.slice(0, 4).map((item) => clip(item.text.replace(/\.$/, ""), 120)).join("; ")}.`);
   if (highlights.length > 0) showcase.push(`In their own words: ${highlights.slice(0, 2).map((highlight) => `"${highlight.quote.replace(/"/g, "'")}" (${highlight.committee})`).join(" ")}`);
-  if (themes.length > 0) showcase.push(`The week's work concentrated on ${listSentence(themes.slice(0, 3).map((theme) => `${theme.label.toLowerCase()} (${plural(theme.mentions, "mention")})`))}.`);
-  if (collaboration.length > 0) showcase.push(`Committees worked across their own boundaries as well: ${listSentence(collaboration.map((edge) => edge.committees.join(" with ")))}.`);
-  showcase.push(`Evidence behind this summary: ${plural(evidence.reportIds.length, "individual report")}, ${plural(evidence.documentLinks, "shared document")}, and ${plural(evidence.attachments, "uploaded file")}, each retrievable by ID.`);
+  if (themes.length > 0) showcase.push(`Focus: ${themes.slice(0, 3).map((theme) => `${theme.label.toLowerCase()} (${theme.mentions})`).join(", ")}.`);
+  if (collaboration.length > 0) showcase.push(`Cross-committee: ${collaboration.map((edge) => edge.committees.join(" × ")).join(", ")}.`);
+  showcase.push(`Evidence: ${plural(evidence.reportIds.length, "individual report")}, ${plural(evidence.documentLinks, "shared document")}, ${plural(evidence.attachments, "uploaded file")} — each retrievable by ID.`);
 
   return { internal, showcase };
 }
@@ -320,6 +310,7 @@ export function buildWeeklyReport(weekOf: string, allReports: IndividualReport[]
   const momentum: Record<Momentum, number> = { shipped: 0, advancing: 0, planning: 0, stalled: 0, blocked: 0 };
   for (const report of current) momentum[signalsFor(report).momentum] += 1;
 
+  const threads = buildProjectThreads(allReports, weekOf);
   const carryOver = buildCarryOver(previous, current);
   const counts = { kept: carryOver.filter((entry) => entry.status === "kept").length, restated: carryOver.filter((entry) => entry.status === "restated").length, dropped: carryOver.filter((entry) => entry.status === "dropped").length };
   const specificities = current.map((report) => signalsFor(report).specificity);
@@ -343,7 +334,8 @@ export function buildWeeklyReport(weekOf: string, allReports: IndividualReport[]
     risks: buildRisks(current),
     themes: buildThemes(current),
     highlights: buildHighlights(current),
-    projects: buildProjectThreads(allReports, weekOf).filter((thread) => thread.latestWeek >= shiftWeek(weekOf, -3)).sort((a, b) => b.weeksSinceDelivery - a.weeksSinceDelivery || b.latestWeek.localeCompare(a.latestWeek)).slice(0, 8),
+    // Stale threads sort first, so the display slice is not a count of active work.
+    projects: threads.filter((thread) => thread.latestWeek >= shiftWeek(weekOf, -3)).sort((a, b) => b.weeksSinceDelivery - a.weeksSinceDelivery || b.latestWeek.localeCompare(a.latestWeek)).slice(0, 8),
     collaboration: buildCollaboration(current),
     carryOver,
     followThrough: { ...counts, rate: carryOver.length === 0 ? 0 : Math.round(((counts.kept + counts.restated) / carryOver.length) * 100) },
@@ -356,7 +348,7 @@ export function buildWeeklyReport(weekOf: string, allReports: IndividualReport[]
     followUps: current.flatMap((report) => signalsFor(report).followUps.slice(0, 2).map((note) => ({ scholarName: report.scholarName, committee: report.reportingFor, note, reportId: report.id }))).slice(0, 8),
   };
 
-  return { ...base, narrative: buildNarrative(base) };
+  return { ...base, narrative: buildNarrative(base, threads.filter((thread) => thread.latestWeek === weekOf).length) };
 }
 
 export function listWeeks(allReports: IndividualReport[]): WeekIndexEntry[] {
@@ -397,7 +389,7 @@ export function buildWeeklyPulse(allReports: IndividualReport[]): WeeklyPulse {
  * and the follow-up prompts; showcase keeps the achievements and the reach.
  */
 export function renderBrief(weekly: WeeklyReport, audience: "internal" | "showcase") {
-  const lines: string[] = [`# Leadership Academy — ${weekly.label}`, "", audience === "internal" ? "_Internal committee report. Generated from individual check-ins; every claim is traceable to a report ID._" : "_Leadership Academy weekly summary._", ""];
+  const lines: string[] = [`# Leadership Academy — ${weekly.label}`, "", audience === "internal" ? "_Internal. Generated from individual check-ins, every claim traceable to a report ID._" : "_Leadership Academy weekly summary._", ""];
 
   if (audience === "showcase") {
     weekly.narrative.showcase.forEach((paragraph) => lines.push(paragraph, ""));
@@ -425,7 +417,7 @@ export function renderBrief(weekly: WeeklyReport, audience: "internal" | "showca
   }
 
   if (weekly.risks.length > 0) {
-    lines.push("## Risks and the move that clears them", "");
+    lines.push("## Risks, and the move that clears each", "");
     weekly.risks.forEach((risk) => {
       lines.push(`### ${risk.label} — ${risk.severity} (${listSentence(risk.committees)})`);
       risk.quotes.forEach((quote) => lines.push(`- "${quote.quote}" — ${quote.scholarName}, ${quote.reportId}`));
